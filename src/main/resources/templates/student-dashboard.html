@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Dashboard</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; background: white; color: black; }
+        nav {
+            background: black;
+            color: white;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid black;
+        }
+        nav h1 { font-size: 20px; }
+        nav a {
+            color: white;
+            text-decoration: none;
+            margin-left: 15px;
+            padding: 8px 15px;
+            border: 1px solid white;
+        }
+        nav a:hover { background: white; color: black; }
+        .container { max-width: 1200px; margin: 20px auto; padding: 20px; }
+        h2 { margin: 20px 0; border-bottom: 2px solid black; padding-bottom: 10px; }
+        h3 { margin: 15px 0; font-size: 18px; }
+        .card { border: 2px solid black; margin-bottom: 20px; background: white; }
+        .card-header { background: black; color: white; padding: 15px; font-weight: bold; }
+        .card-body { padding: 20px; }
+        table { width: 100%; border-collapse: collapse; margin: 10px 0; }
+        th, td { padding: 12px; text-align: left; border: 1px solid black; }
+        th { background: black; color: white; font-weight: bold; }
+        tr:nth-child(even) { background: #f0f0f0; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid black;
+            background: white;
+            color: black;
+        }
+        input:focus, select:focus { outline: none; border: 2px solid black; }
+        button {
+            padding: 10px 20px;
+            background: black;
+            color: white;
+            border: 2px solid black;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        button:hover { background: white; color: black; }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+        }
+        .modal-content {
+            background: white;
+            margin: 50px auto;
+            padding: 0;
+            border: 3px solid black;
+            width: 90%;
+            max-width: 500px;
+        }
+        .modal-header {
+            background: black;
+            color: white;
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .modal-body { padding: 20px; }
+        .close {
+            color: white;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close:hover { color: #ccc; }
+    </style>
+</head>
+<body>
+    <nav>
+        <h1>Student Portal</h1>
+        <div>
+            <span>Welcome, <strong th:text="${student?.name ?: 'Student'}">Student</strong></span>
+            <a href="#" onclick="openProfileModal(); return false;">Edit Profile</a>
+            <a th:href="@{/logout}">Logout</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div>
+            <h2>Student Dashboard</h2>
+            <p>View and manage your course enrollments</p>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <!-- My Enrolled Courses -->
+            <div class="card">
+                <div class="card-header">
+                    <h3>My Enrolled Courses</h3>
+                </div>
+                <div class="card-body">
+                    <table th:if="${!myCourses.isEmpty()}">
+                        <thead>
+                            <tr>
+                                <th>Course</th>
+                                <th>Credits</th>
+                                <th>Teacher</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="course : ${myCourses}">
+                                <td th:text="${course.title}">Course Name</td>
+                                <td th:text="${course.credit}">3</td>
+                                <td th:text="${course.teacher?.name ?: 'N/A'}">Teacher Name</td>
+                                <td>
+                                    <form th:action="@{/student/courses/drop/{id}(id=${course.id})}" method="post" style="display:inline;">
+                                        <button type="submit" class="btn btn-danger">Drop</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div th:if="${myCourses.isEmpty()}" class="empty">
+                        <p>You haven't enrolled in any courses yet.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Available Courses -->
+            <div class="card">
+                <div class="card-header">
+                    <h3>Available Courses</h3>
+                </div>
+                <div class="card-body">
+                    <table th:if="${!allCourses.isEmpty()}">
+                        <thead>
+                            <tr>
+                                <th>Course</th>
+                                <th>Credits</th>
+                                <th>Teacher</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="course : ${allCourses}">
+                                <td th:text="${course.title}">Course Name</td>
+                                <td th:text="${course.credit}">3</td>
+                                <td th:text="${course.teacher?.name ?: 'N/A'}">Teacher Name</td>
+                                <td>
+                                    <span th:if="${myCourses.contains(course)}" class="badge badge-enrolled">Enrolled</span>
+                                    <form th:unless="${myCourses.contains(course)}" th:action="@{/student/courses/enroll/{id}(id=${course.id})}" method="post" style="display:inline;">
+                                        <button type="submit" class="btn btn-success">Enroll</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div th:if="${allCourses.isEmpty()}" class="empty">
+                        <p>No courses available at the moment.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Profile Modal -->
+    <div id="profileModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Edit Profile</h3>
+                <span class="close" onclick="closeProfileModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="editProfileForm">
+                    <div class="form-group">
+                        <label for="studentName">Name</label>
+                        <input type="text" id="studentName" name="name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="studentDept">Department</label>
+                        <select id="studentDept" name="dept">
+                            <option value="">Select Department</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="studentPassword">New Password (leave empty to keep current)</label>
+                        <input type="password" id="studentPassword" name="password" placeholder="Enter new password">
+                    </div>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </form>
+                <div id="profileMessage" style="margin-top: 10px; padding: 10px; display: none; border-radius: 5px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function openProfileModal() {
+            // Load profile and departments
+            Promise.all([
+                fetch('/student/profile').then(r => r.json()),
+                fetch('/student/departments').then(r => r.json())
+            ])
+            .then(([student, departments]) => {
+                document.getElementById('studentName').value = student.name;
+                document.getElementById('studentPassword').value = '';
+                
+                const select = document.getElementById('studentDept');
+                select.innerHTML = '<option value="">Select Department</option>';
+                departments.forEach(dept => {
+                    const option = document.createElement('option');
+                    option.value = dept.id;
+                    option.textContent = dept.name;
+                    if (student.dept && student.dept.id === dept.id) {
+                        option.selected = true;
+                    }
+                    select.appendChild(option);
+                });
+                
+                document.getElementById('profileModal').style.display = 'block';
+            })
+            .catch(error => {
+                console.error('Error loading profile:', error);
+                alert('Error loading profile');
+            });
+        }
+
+        function closeProfileModal() {
+            document.getElementById('profileModal').style.display = 'none';
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('editProfileForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const deptId = document.getElementById('studentDept').value;
+                const formData = {
+                    name: document.getElementById('studentName').value,
+                    password: document.getElementById('studentPassword').value,
+                    dept: deptId ? { id: parseInt(deptId) } : null
+                };
+
+                fetch('/student/profile', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData)
+                })
+                .then(response => {
+                    if (response.ok) {
+                        return response.json();
+                    } else {
+                        throw new Error('Failed to update profile');
+                    }
+                })
+                .then(data => {
+                    showProfileMessage('Profile updated successfully!', 'success');
+                    setTimeout(() => {
+                        closeProfileModal();
+                        location.reload();
+                    }, 1500);
+                })
+                .catch(error => {
+                    showProfileMessage(error.message, 'error');
+                });
+            });
+        });
+
+        function showProfileMessage(message, type) {
+            const messageDiv = document.getElementById('profileMessage');
+            messageDiv.textContent = message;
+            messageDiv.style.display = 'block';
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('profileModal');
+            if (event.target == modal) {
+                closeProfileModal();
+            }
+        }
+    </script>
+</body>
+</html>
