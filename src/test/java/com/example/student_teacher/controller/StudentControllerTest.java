@@ -94,8 +94,8 @@ class StudentControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name").value("John Doe"))
                 .andExpect(jsonPath("$.email").value("john.doe@example.com"));
-                
-                assertTrue(false, "Intentional failure");
+
+                // assertTrue(false, "Intentional failure");
     }
 
     @Test
